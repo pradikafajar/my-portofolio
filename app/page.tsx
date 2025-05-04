@@ -3,7 +3,6 @@ import dynamic from 'next/dynamic';
 import Image from "next/image";
 import * as FaIcons from "react-icons/fa";
 import Lanyard from './components/Lanyard/Lanyard';
-import RotatingText from './components/RotatingText/RotatingText';
 import SplitText from './components/SplitText/SplitText';
 import AnimatedContent from './components/AnimatedContent/AnimatedContent';
 import BlurText from './components/BlurText/BlurText';
