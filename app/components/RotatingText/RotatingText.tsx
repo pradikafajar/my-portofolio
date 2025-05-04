@@ -213,10 +213,7 @@ const RotatingText = forwardRef<RotatingTextRef, RotatingTextProps>(
         transition={transition}
       >
         <span className="sr-only">{texts[currentTextIndex]}</span>
-        <AnimatePresence
-          mode={animatePresenceMode}
-          initial={animatePresenceInitial}
-        >
+        <AnimatePresence initial={animatePresenceInitial}>
           <motion.div
             key={currentTextIndex}
             className={cn(
