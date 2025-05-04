@@ -8,15 +8,6 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import {
-  motion,
-  AnimatePresence,
-  Transition,
-  type VariantLabels,
-  type Target,
-  type AnimationControls,
-  type TargetAndTransition,
-} from "framer-motion";
 
 function cn(...classes: (string | undefined | null | boolean)[]): string {
   return classes.filter(Boolean).join(" ");
@@ -29,21 +20,9 @@ export interface RotatingTextRef {
   reset: () => void;
 }
 
-export interface RotatingTextProps
-  extends Omit<
-    React.ComponentPropsWithoutRef<typeof motion.span>,
-    "children" | "transition" | "initial" | "animate" | "exit"
-  > {
+export interface RotatingTextProps {
   texts: string[];
-  transition?: Transition;
-  initial?: boolean | Target | VariantLabels;
-  animate?: boolean | VariantLabels | AnimationControls | TargetAndTransition;
-  exit?: Target | VariantLabels;
-  animatePresenceMode?: "sync" | "wait";
-  animatePresenceInitial?: boolean;
   rotationInterval?: number;
-  staggerDuration?: number;
-  staggerFrom?: "first" | "last" | "center" | "random" | number;
   loop?: boolean;
   auto?: boolean;
   splitBy?: string;
@@ -57,15 +36,7 @@ const RotatingText = forwardRef<RotatingTextRef, RotatingTextProps>(
   (
     {
       texts,
-      transition = { type: "spring", damping: 25, stiffness: 300 },
-      initial = { y: "100%", opacity: 0 },
-      animate = { y: 0, opacity: 1 },
-      exit = { y: "-120%", opacity: 0 },
-      animatePresenceMode = "wait",
-      animatePresenceInitial = false,
       rotationInterval = 2000,
-      staggerDuration = 0,
-      staggerFrom = "first",
       loop = true,
       auto = true,
       splitBy = "characters",
@@ -73,7 +44,6 @@ const RotatingText = forwardRef<RotatingTextRef, RotatingTextProps>(
       mainClassName,
       splitLevelClassName,
       elementLevelClassName,
-      ...rest
     },
     ref
   ) => {
@@ -82,10 +52,7 @@ const RotatingText = forwardRef<RotatingTextRef, RotatingTextProps>(
     const splitIntoCharacters = (text: string): string[] => {
       if (typeof Intl !== "undefined" && Intl.Segmenter) {
         const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
-        return Array.from(
-          segmenter.segment(text),
-          (segment) => segment.segment
-        );
+        return Array.from(segmenter.segment(text), (segment) => segment.segment);
       }
       return Array.from(text);
     };
@@ -117,25 +84,6 @@ const RotatingText = forwardRef<RotatingTextRef, RotatingTextProps>(
         needsSpace: i !== arr.length - 1,
       }));
     }, [texts, currentTextIndex, splitBy]);
-
-    const getStaggerDelay = useCallback(
-      (index: number, totalChars: number): number => {
-        const total = totalChars;
-        if (staggerFrom === "first") return index * staggerDuration;
-        if (staggerFrom === "last")
-          return (total - 1 - index) * staggerDuration;
-        if (staggerFrom === "center") {
-          const center = Math.floor(total / 2);
-          return Math.abs(center - index) * staggerDuration;
-        }
-        if (staggerFrom === "random") {
-          const randomIndex = Math.floor(Math.random() * total);
-          return Math.abs(randomIndex - index) * staggerDuration;
-        }
-        return Math.abs((staggerFrom as number) - index) * staggerDuration;
-      },
-      [staggerFrom, staggerDuration]
-    );
 
     const handleIndexChange = useCallback(
       (newIndex: number) => {
@@ -203,69 +151,38 @@ const RotatingText = forwardRef<RotatingTextRef, RotatingTextProps>(
     }, [next, rotationInterval, auto]);
 
     return (
-      <motion.span
-        className={cn(
-          "flex flex-wrap whitespace-pre-wrap relative",
-          mainClassName
-        )}
-        {...rest}
-        layout
-        transition={transition}
-      >
+      <span className={cn("flex flex-wrap whitespace-pre-wrap relative", mainClassName)}>
         <span className="sr-only">{texts[currentTextIndex]}</span>
-        <AnimatePresence initial={animatePresenceInitial}>
-          <motion.div
-            key={currentTextIndex}
-            className={cn(
-              splitBy === "lines"
-                ? "flex flex-col w-full"
-                : "flex flex-wrap whitespace-pre-wrap relative"
-            )}
-            layout
-            aria-hidden="true"
-          >
-            {elements.map((wordObj, wordIndex, array) => {
-              const previousCharsCount = array
-                .slice(0, wordIndex)
-                .reduce((sum, word) => sum + word.characters.length, 0);
-              return (
+        <div
+          className={cn(
+            splitBy === "lines"
+              ? "flex flex-col w-full"
+              : "flex flex-wrap whitespace-pre-wrap relative"
+          )}
+          aria-hidden="true"
+        >
+          {elements.map((wordObj, wordIndex, array) => (
+            <span
+              key={wordIndex}
+              className={cn("inline-flex", splitLevelClassName)}
+            >
+              {wordObj.characters.map((char, charIndex) => (
                 <span
-                  key={wordIndex}
-                  className={cn("inline-flex", splitLevelClassName)}
+                  key={charIndex}
+                  className={cn("inline-block", elementLevelClassName)}
                 >
-                  {wordObj.characters.map((char, charIndex) => (
-                    <motion.span
-                      key={charIndex}
-                      initial={initial}
-                      animate={animate}
-                      exit={exit}
-                      transition={{
-                        ...transition,
-                        delay: getStaggerDelay(
-                          previousCharsCount + charIndex,
-                          array.reduce(
-                            (sum, word) => sum + word.characters.length,
-                            0
-                          )
-                        ),
-                      }}
-                      className={cn("inline-block", elementLevelClassName)}
-                    >
-                      {char}
-                    </motion.span>
-                  ))}
-                  {wordObj.needsSpace && (
-                    <span className="whitespace-pre"> </span>
-                  )}
+                  {char}
                 </span>
-              );
-            })}
-          </motion.div>
-        </AnimatePresence>
-      </motion.span>
+              ))}
+              {wordObj.needsSpace && <span className="whitespace-pre"> </span>}
+            </span>
+          ))}
+        </div>
+      </span>
     );
   }
 );
 
 RotatingText.displayName = "RotatingText";
 export default RotatingText;
+            
